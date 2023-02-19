@@ -1,0 +1,9 @@
+spring:
+  application:
+    name: open-api-demo
+  security:
+    user:
+      name: admin
+      password: admin
+  datasource:
+    url: jdbc:h2:mem:demo
