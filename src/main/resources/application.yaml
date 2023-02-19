@@ -17,11 +17,6 @@ spring:
       indent-output: true
 
 management:
-  endpoint:
-    startup:
-      enabled: true
-    refresh:
-      enabled: true
   endpoints:
     enabled-by-default: true
     web:
