@@ -24,6 +24,7 @@ public class DemoOpenAPIApplication {
     @SneakyThrows
     @Bean
     SecurityFilterChain security(HttpSecurity http) {
+        http.authorizeHttpRequests().requestMatchers(r -> r.getRequestURI().startsWith("/swagger-ui")).permitAll();
         http.authorizeHttpRequests().anyRequest().authenticated();
         http.csrf().disable();
         http.formLogin();

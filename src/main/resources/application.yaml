@@ -29,3 +29,10 @@ management:
         include: '*'
     jackson:
       isolated-object-mapper: false
+
+# for familiarity
+springdoc:
+  swagger-ui:
+    path: /swagger-ui
+  api-docs:
+    path: /swagger-ui/api
