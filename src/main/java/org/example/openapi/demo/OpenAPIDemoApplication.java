@@ -15,10 +15,10 @@ import org.springframework.security.web.SecurityFilterChain;
 
 @EnableJdbcRepositories(considerNestedRepositories = true)
 @SpringBootApplication
-public class DemoOpenAPIApplication {
+public class OpenAPIDemoApplication {
 
     public static void main(String[] args) {
-        SpringApplication.run(DemoOpenAPIApplication.class, args);
+        SpringApplication.run(OpenAPIDemoApplication.class, args);
     }
 
     @SneakyThrows
