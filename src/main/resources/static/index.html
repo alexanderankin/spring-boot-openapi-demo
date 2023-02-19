@@ -1,0 +1,252 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>OpenAPI Demo Home</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-GLhlTQ8iRABdZLl6O3oVMWSktQOp6b7In1Zl3/Jr59b6EGGoI1aFkw7cmDA6j6gD" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-w76AqPfDkMBDXo30jS1Sgez6pr3x5MlQ1ZAGC+nuZB+EYdgRZgiwxhTBTkF7CXvN"
+            crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.3/dist/jquery.min.js"
+            integrity="sha256-pvPw+upLPUjgMXY0G+8O0xUf+/Im1MZjXxxgOcBQBXU=" crossorigin="anonymous"></script>
+    <style>
+        .not-too-tall {
+            max-height: 300px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <header class="d-flex flex-wrap justify-content-center py-3 mb-4 border-bottom">
+        <a href="/" class="d-flex align-items-center mb-3 mb-md-0 me-md-auto text-dark text-decoration-none">
+            <img src="favicon.ico" height="32" alt="OpenAPI logo">
+            <span class="ms-2 fs-4">
+                OpenAPI Demo
+            </span>
+        </a>
+
+        <ul class="nav nav-pills">
+            <li class="nav-item"><a href="/" class="nav-link active" aria-current="page">Home</a></li>
+            <li class="nav-item"><a href="/open-api" class="nav-link">OpenAPI Reference</a></li>
+        </ul>
+    </header>
+
+    <div class="container">
+        <div class="row">
+            <div class="col">
+                <h1>OpenAPI in a Spring Boot Application</h1>
+                <p>This application shows how to add an OpenAPI page to an app.</p>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col">
+                <h2>API endpoints</h2>
+                <div class="overflow-scroll not-too-tall">
+                    <div id="api-mapping-list-group" class="list-group width-auto"></div>
+                </div>
+                <script>
+                    $(() => {
+                        let endpoints = window.document.getElementById('api-mapping-list-group');
+                        let template = window.document.getElementById('api-mapping-list-group-template');
+                        fetch('/actuator/mappings').then(r => r.json()).then(renderMappings);
+
+                        function renderMappings(routes) {
+                            // noinspection JSUnresolvedVariable
+                            let r = routes.contexts["open-api-demo"].mappings.dispatcherServlets.dispatcherServlet.map(route => {
+                                // noinspection JSUnresolvedVariable
+                                return route?.details?.requestMappingConditions.patterns
+                            })
+                                .filter(Boolean)
+                                .flatMap(pattern => pattern)
+                                .filter(pattern => pattern.startsWith('/api'))
+                                .filter((el, index, array) => index === array.indexOf(el))
+
+                            for (let pattern of r) {
+                                let e = template.cloneNode(true)
+                                e.querySelector('[data-name=link]').href = pattern
+                                e.querySelector('[data-name=name]').innerText = pattern.split('/').pop()
+                                e.querySelector('[data-name=description]').innerText = pattern
+                                endpoints.appendChild(e)
+                            }
+                        }
+                    });
+                </script>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col">
+                <h2>Actuator tools</h2>
+                <form id="actuator-list-filter-form" class="row">
+                    <div class="col">
+                        <label for="actuator-list-filter" class="visually-hidden">Search</label>
+                        <input type="text" class="form-control-plaintext" id="actuator-list-filter" name="search"
+                               placeholder="search actuator features">
+                    </div>
+                </form>
+
+                <script>
+                    $(() => {
+                        const filterForm = window.document.getElementById('actuator-list-filter-form');
+                        const alg = window.document.getElementById('actuator-list-group')
+                        const algInput = window.document.getElementById('actuator-list-filter')
+
+                        const ACTUATOR_FILTER_PARAM_NAME = 'actuator-filter'
+
+                        function followQueryParam() {
+                            algInput.value = new URL(window.location.href).searchParams.get(ACTUATOR_FILTER_PARAM_NAME)
+                            filterActuatorResults()
+                        }
+
+                        followQueryParam();
+                        window.addEventListener('popstate', followQueryParam)
+
+                        function filterActuatorResults() {
+                            // console.log('filtering actuator results with', algInput.value)
+                            for (let child of alg.children) {
+                                if (child.innerText.toLowerCase().includes(algInput.value))
+                                    child.classList.remove('d-none')
+                                else
+                                    child.classList.add('d-none')
+                            }
+                        }
+
+                        filterForm.addEventListener('submit', e => {
+                            e.preventDefault()
+                            if (bounce) clearTimeout(bounce)
+                            filterActuatorResults()
+                        })
+
+                        let bounce;
+                        algInput.addEventListener('input', () => {
+                            if (bounce) clearTimeout(bounce)
+                            bounce = setTimeout(filterActuatorResults, 1000);
+
+                            let url = new URL(window.location.href)
+                            let newParam = url.searchParams.has(ACTUATOR_FILTER_PARAM_NAME);
+                            url.searchParams.set(ACTUATOR_FILTER_PARAM_NAME, algInput.value)
+                            if (newParam) window.history.replaceState(null, '', url)
+                            else window.history.pushState(null, '', url)
+                        })
+
+                        alg.addEventListener('fetch', e => {
+                            renderFetchedData(e);
+                            filterActuatorResults();
+                        });
+
+                        function renderFetchedData(e) {
+                            let algTemplate = window.document.getElementById('actuator-list-group-template')
+                            for (let { name, url } of e.detail) {
+                                let element = algTemplate.cloneNode(true)
+
+                                element.querySelector('[data-name=link]').href = url.href
+                                element.querySelector('[data-name=heading]').innerText = name
+                                element.querySelector('[data-name=description]').innerText = url.pathname
+                                element.querySelector('[data-name=small-description]').innerText = url.pathname
+
+                                let featureSpecificTemplate = window.document.getElementById('actuator-feature-template-' + name);
+                                if (featureSpecificTemplate) {
+                                    element.querySelector('[data-name=body]')
+                                        .replaceChildren(featureSpecificTemplate)
+                                }
+
+                                alg.append(element)
+                            }
+                        }
+                    })
+                </script>
+
+                <div class="overflow-scroll not-too-tall">
+                    <div id="actuator-list-group" class="list-group width-auto"></div>
+                </div>
+
+                <script>
+                    $(() => {
+                        function toObject(entry) {
+                            return {
+                                name: entry[0],
+                                url: new URL(entry[1].href),
+                                templated: entry[1].templated,
+                            }
+                        }
+
+                        function notTemplated(entry) {
+                            return !entry.templated;
+                        }
+
+                        // noinspection JSUnresolvedVariable
+                        fetch('/actuator').then(r => r.json())
+                            .then(c => Object.entries(c._links).map(toObject).filter(notTemplated))
+                            .then(links => {
+                                let alg = window.document.getElementById('actuator-list-group')
+                                alg.dispatchEvent(new CustomEvent('fetch', {
+                                    detail: links
+                                }));
+                            })
+                    });
+                </script>
+            </div>
+        </div>
+    </div>
+    <div id="templates" class="d-none">
+        <div id="actuator-list-group-template" class="list-group width-auto">
+            <a data-name="link" href="#" class="list-group-item list-group-item-action d-flex gap-3 py-3"
+               aria-current="true">
+                <div class="d-flex flex-column gap-2 w-100 justify-content-between">
+                    <div class="d-flex gap-2 w-100 justify-content-between">
+                        <div>
+                            <h6 data-name="heading" class="mb-0"></h6>
+                            <p data-name="description" class="mb-0 opacity-75"></p>
+                        </div>
+                        <small data-name="small-description" class="opacity-50 text-nowrap">now</small>
+                    </div>
+                    <div data-name="body"></div>
+                </div>
+            </a>
+        </div>
+
+        <div id="actuator-feature-template-refresh">
+            <button role="button" class="btn btn-sm btn-outline-warning">
+                Reload
+            </button>
+        </div>
+
+        <script>
+            $(() => {
+                let fetching = false; // using classList led to race conditions?
+                window.document.getElementById('actuator-feature-template-refresh')
+                    .addEventListener('click', function (e) {
+                        e.preventDefault()
+                        if (fetching) return
+                        fetching = true;
+                        e.target.classList.add('disabled')
+
+                        let enable = () => {
+                            e.target.classList.remove('disabled');
+                            fetching = false
+                        }
+
+                        fetch('/actuator/refresh', { method: 'POST' })
+                            .then(r => r.text()).then(b => console.log('refreshed:', b))
+                            .then(enable, enable)
+                    });
+            });
+        </script>
+
+        <div id="api-mapping-list-group-template" class="list-group width-auto">
+            <a data-name="link" href="#" class="list-group-item list-group-item-action d-flex gap-3 py-3"
+               aria-current="true">
+                <div class="d-flex gap-2 w-100 justify-content-between">
+                    <div>
+                        <h6 data-name="name" class="mb-0"></h6>
+                        <p data-name="description" class="mb-0 opacity-75"></p>
+                    </div>
+                </div>
+            </a>
+        </div>
+    </div>
+</div>
+</body>
+</html>

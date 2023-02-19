@@ -6,4 +6,26 @@ spring:
       name: admin
       password: admin
   datasource:
-    url: jdbc:h2:mem:demo
+    url: jdbc:h2:file:/tmp/demo;DATABASE_TO_UPPER=TRUE;CASE_INSENSITIVE_IDENTIFIERS=TRUE;
+
+  session:
+    jdbc:
+      initialize-schema: always
+
+  jackson:
+    serialization:
+      indent-output: true
+
+management:
+  endpoint:
+    startup:
+      enabled: true
+    refresh:
+      enabled: true
+  endpoints:
+    enabled-by-default: true
+    web:
+      exposure:
+        include: '*'
+    jackson:
+      isolated-object-mapper: false
